@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="script.filecleaner" name="Janitor" version="4.2.1" provider-name="Anthirian, drewzh">
+<addon id="script.filecleaner" name="JanitorLeia" version="4.2.2" provider-name="Anthirian, drewzh, Laric">
     <requires>
-        <import addon="xbmc.python" version="2.24.0" />
-        <import addon="xbmc.json" version="6.32.4" />
-        <import addon="xbmc.gui" version="5.10.0" />
+        <import addon="xbmc.python" version="2.25.0" />
+        <import addon="xbmc.json" version="8.0.0" />
+        <import addon="xbmc.gui" version="5.13.0" />
     </requires>
     <extension point="xbmc.python.script" library="default.py" />
     <extension point="xbmc.service" library="service.py" start="login" />

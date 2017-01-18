@@ -122,7 +122,7 @@ class Cleaner(object):
         if not self.silent:
             # Cleaning <video type>
             self.progress.update(0, translate(32629).format(type=type_translation[video_type]), *map(translate, (32615, 32615)))
-            self.monitor.waitForAbort(1)
+            self.monitor.waitForAbort(0.25)
 
         if video_type == self.TVSHOWS:
             clean_this_video_type = get_setting(clean_tv_shows)
@@ -145,7 +145,7 @@ class Cleaner(object):
                     increment = 1.0 / amount
                 except ZeroDivisionError:
                     self.progress.update(0, *map(translate, (32621, 32622, 32623)))  # No watched videos found
-                    if self.monitor.waitForAbort(2.5):
+                    if self.monitor.waitForAbort(0.5):
                         pass
 
             for filename, title in expired_videos:
@@ -197,14 +197,14 @@ class Cleaner(object):
                         if isinstance(title, unicode):
                             title = title.encode("utf-8")
                         self.progress.update(int(progress_percent), translate(32616).format(amount=amount, type=type_translation[video_type]), translate(32617), "[I]{0!s}[/I]".format(title))
-                        self.monitor.waitForAbort(2)
+                        self.monitor.waitForAbort(0.5)
                 else:
                     debug("We had {amt!s} {type!s} left to clean.".format(amt=(amount - count), type=type_translation[video_type]))
         else:
             debug("Cleaning of {0!r} is disabled. Skipping.".format(video_type))
             if not self.silent:
                 self.progress.update(0, translate(32624).format(type=type_translation[video_type]), *map(translate, (32625, 32615)))
-                self.monitor.waitForAbort(2)
+                self.monitor.waitForAbort(0.5)
 
         return cleaned_files, count, self.exit_status
 
@@ -228,7 +228,7 @@ class Cleaner(object):
             if not self.silent:
                 self.progress.create(ADDON_NAME, *map(translate, (32619, 32615, 32615)))
                 self.progress.update(0)
-                self.monitor.waitForAbort(2)
+                self.monitor.waitForAbort(0.5)
             for video_type in [self.MOVIES, self.MUSIC_VIDEOS, self.TVSHOWS]:
                 if not self.__is_canceled():
                     cleaned_files, count, status = self.clean(video_type)
