@@ -56,6 +56,8 @@
 
         <setting label="32311" id="not_in_progress" type="bool" default="true" visible="true" />
         <setting label="32312" id="musicvideo_progress_info" type="lsep" subsetting="true" visible="eq(-1,true)" />
+
+        <setting label="32313" id="keep_hard_linked" type="bool" default="false" visible="true" />
     </category>
 
     <!-- Exclusions section -->
@@ -69,7 +71,9 @@
         <setting label="32404" id="exclusion1" type="folder" default="" subsetting="true" visible="eq(-2,true)" />
         <setting label="32404" id="exclusion2" type="folder" default="" subsetting="true" visible="eq(-3,true)" />
         <setting label="32404" id="exclusion3" type="folder" default="" subsetting="true" visible="eq(-4,true)" />
-        <setting label="32405" id="reset_exclusions" type="action" action="RunScript(special://home/addons/script.filecleaner/reset_exclusions.py)" subsetting="true" visible="eq(-5,true)" />
+        <setting label="32404" id="exclusion4" type="folder" default="" subsetting="true" visible="eq(-5,true)" />
+        <setting label="32404" id="exclusion5" type="folder" default="" subsetting="true" visible="eq(-6,true)" />
+        <setting label="32405" id="reset_exclusions" type="action" action="RunScript(script.service.janitor, reset)" subsetting="true" visible="eq(-7,true)" />
     </category>
 
     <!-- Notifications section -->
@@ -88,6 +92,6 @@
         <setting type="sep" />
         <setting label="32601" type="lsep" />
         <setting type="sep" />
-        <setting label="32602" type="action" action="RunScript(special://home/addons/script.filecleaner/viewer.py)" />
+        <setting label="32602" type="action" action="RunScript(script.service.janitor, log)" />
     </category>
 </settings>

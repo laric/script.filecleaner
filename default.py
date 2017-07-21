@@ -2,15 +2,11 @@
 # -*- coding: utf-8 -*-
 
 import json
+import sys
+
+from reset_exclusions import *
 from utils import *
-
-
-# Addon info
-ADDON_ID = "script.filecleaner"
-ADDON = Addon(ADDON_ID)
-ADDON_NAME = xbmc.translatePath(ADDON.getAddonInfo("name")).decode("utf-8")
-ADDON_AUTHOR = "Anthirian, drewzh"
-ADDON_ICON = xbmc.translatePath(ADDON.getAddonInfo("icon")).decode("utf-8")
+from viewer import *
 
 
 class Cleaner(object):
@@ -151,7 +147,7 @@ class Cleaner(object):
             for filename, title in expired_videos:
                 if not self.__is_canceled():
                     unstacked_path = self.unstack(filename)
-                    if xbmcvfs.exists(unstacked_path[0]):
+                    if xbmcvfs.exists(unstacked_path[0]) and self.has_no_hard_links(filename):
                         if get_setting(cleaning_type) == self.CLEANING_TYPE_MOVE:
                             # No destination set, prompt user to set one now
                             if get_setting(holding_folder) == "":
@@ -189,7 +185,7 @@ class Cleaner(object):
                                 self.clean_related_files(filename)
                                 self.delete_empty_folders(os.path.dirname(filename))
                     else:
-                        debug("{0!r} was already deleted. Skipping.".format(filename), xbmc.LOGWARNING)
+                        debug("Not cleaning {0!r}.".format(filename), xbmc.LOGNOTICE)
 
                     if not self.silent:
                         progress_percent += increment * 100
@@ -223,8 +219,7 @@ class Cleaner(object):
 
         results = {}
         cleaning_results, cleaned_files = [], []
-        if not get_setting(clean_when_low_disk_space) or (get_setting(clean_when_low_disk_space) and
-                                                          utils.disk_space_low()):
+        if not get_setting(clean_when_low_disk_space) or (get_setting(clean_when_low_disk_space) and disk_space_low()):
             if not self.silent:
                 self.progress.create(ADDON_NAME, *map(translate, (32619, 32615, 32615)))
                 self.progress.update(0)
@@ -267,18 +262,18 @@ class Cleaner(object):
         # Localize video types
         for vid_type, amount in details.items():
             if vid_type is self.MOVIES:
-                video_type = utils.translate(32515)
+                video_type = translate(32515)
             elif vid_type is self.TVSHOWS:
-                video_type = utils.translate(32516)
+                video_type = translate(32516)
             elif vid_type is self.MUSIC_VIDEOS:
-                video_type = utils.translate(32517)
+                video_type = translate(32517)
             else:
                 video_type = ""
 
             summary += "{0:d} {1}, ".format(amount, video_type)
 
         # strip the comma and space from the last iteration and add the localized suffix
-        return "{0}{1}".format(summary.rstrip(", "), utils.translate(32518)) if summary else ""
+        return "{0}{1}".format(summary.rstrip(", "), translate(32518)) if summary else ""
 
     def get_expired_videos(self, option):
         """
@@ -302,6 +297,8 @@ class Cleaner(object):
         by_exclusion1 = {"field": "path", "operator": "doesnotcontain", "value": get_setting(exclusion1)}
         by_exclusion2 = {"field": "path", "operator": "doesnotcontain", "value": get_setting(exclusion2)}
         by_exclusion3 = {"field": "path", "operator": "doesnotcontain", "value": get_setting(exclusion3)}
+        by_exclusion4 = {"field": "path", "operator": "doesnotcontain", "value": get_setting(exclusion4)}
+        by_exclusion5 = {"field": "path", "operator": "doesnotcontain", "value": get_setting(exclusion5)}
 
         # link settings and filters together
         settings_and_filters = [
@@ -310,7 +307,9 @@ class Cleaner(object):
             (get_setting(not_in_progress), by_progress),
             (get_setting(exclusion_enabled) and get_setting(exclusion1) is not "", by_exclusion1),
             (get_setting(exclusion_enabled) and get_setting(exclusion2) is not "", by_exclusion2),
-            (get_setting(exclusion_enabled) and get_setting(exclusion3) is not "", by_exclusion3)
+            (get_setting(exclusion_enabled) and get_setting(exclusion3) is not "", by_exclusion3),
+            (get_setting(exclusion_enabled) and get_setting(exclusion4) is not "", by_exclusion4),
+            (get_setting(exclusion_enabled) and get_setting(exclusion5) is not "", by_exclusion5)
         ]
 
         # Only check not rated videos if checking for video ratings at all
@@ -357,7 +356,7 @@ class Cleaner(object):
         response = result["result"]
         try:
             debug("Found {0:d} watched {1} matching your conditions".format(response["limits"]["total"], option))
-            debug("JSON Response: " + str(response))
+            debug("JSON Response: {0!s}".format(response))
             for video in response[option]:
                 # Gather all properties and add it to this video's information
                 temp = []
@@ -480,18 +479,18 @@ class Cleaner(object):
             try:
                 # Recursively delete any subfolders
                 for f in subfolders:
-                    debug("Deleting file at " + str(os.path.join(folder, f)))
+                    debug("Deleting file at {0!s}".format(os.path.join(folder, f)))
                     self.delete_empty_folders(os.path.join(folder, f))
 
                 # Delete any files in the current folder
                 for f in files:
-                    debug("Deleting file at " + str(os.path.join(folder, f)))
+                    debug("Deleting file at {0!s}".format(os.path.join(folder, f)))
                     xbmcvfs.delete(os.path.join(folder, f))
 
                 # Finally delete the current folder
                 return xbmcvfs.rmdir(folder)
             except OSError as oe:
-                debug("An exception occurred while deleting folders. Errno " + str(oe.errno), xbmc.LOGERROR)
+                debug("An exception occurred while deleting folders. Errno {0!s}".format(oe.errno), xbmc.LOGERROR)
                 return False
         else:
             debug("Directory is not empty and will not be removed")
@@ -620,20 +619,45 @@ class Cleaner(object):
 
         return 1 if len(paths) == files_moved_successfully else -1
 
-if __name__ == "__main__":
-    cleaner = Cleaner()
-    if get_setting(default_action) == cleaner.DEFAULT_ACTION_LOG:
-        xbmc.executescript("special://home/addons/script.filecleaner/viewer.py")
-    else:
-        cleaner.show_progress()
-        results, return_status = cleaner.clean_all()
-        if results:
-            # Videos were cleaned. Ask the user to view the log file.
-            # TODO: Listen to OnCleanFinished notifications and wait before asking to view the log
-            if xbmcgui.Dialog().yesno(utils.translate(32514), results, utils.translate(32519)):
-                xbmc.executescript("special://home/addons/script.filecleaner/viewer.py")
-        elif return_status == cleaner.STATUS_ABORTED:
-            # Do not show cleaning results in case user aborted, e.g. to set holding folder
-            pass
+    def has_no_hard_links(self, filename):
+        """
+        Tests the provided filename for hard links and only returns True if the number of hard links is exactly 1.
+
+        :param filename: The filename to check for hard links
+        :type filename: str
+        :return: True if the number of hard links equals 1, False otherwise.
+        :rtype: bool
+        """
+        if get_setting(keep_hard_linked):
+            debug("Making sure the number of hard links is exactly one.")
+            is_hard_linked = all(i == 1 for i in map(xbmcvfs.Stat.st_nlink, map(xbmcvfs.Stat, self.unstack(filename))))
+            debug("No hard links detected." if is_hard_linked else "Hard links detected. Skipping.")
         else:
-            xbmcgui.Dialog().ok(ADDON_NAME, utils.translate(32520))
+            debug("Not checking for hard links.")
+            return True
+
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "log":
+        win = LogViewerDialog("JanitorLogViewer.xml", ADDON.getAddonInfo("path"))
+        win.doModal()
+        del win
+    elif len(sys.argv) > 1 and sys.argv[1] == "reset":
+        reset_exclusions()
+    else:
+        cleaner = Cleaner()
+        if get_setting(default_action) == cleaner.DEFAULT_ACTION_LOG:
+            xbmc.executebuiltin("RunScript({0!s}, log)".format(ADDON_ID))
+        else:
+            cleaner.show_progress()
+            results, return_status = cleaner.clean_all()
+            if results:
+                # Videos were cleaned. Ask the user to view the log file.
+                # TODO: Listen to OnCleanFinished notifications and wait before asking to view the log
+                if xbmcgui.Dialog().yesno(translate(32514), results, translate(32519)):
+                    xbmc.executebuiltin("RunScript({0!s}, log)".format(ADDON_ID))
+            elif return_status == cleaner.STATUS_ABORTED:
+                # Do not show cleaning results in case user aborted, e.g. to set holding folder
+                pass
+            else:
+                xbmcgui.Dialog().ok(ADDON_NAME, translate(32520))
